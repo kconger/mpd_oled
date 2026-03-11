@@ -41,7 +41,8 @@ redistribution
 const char *oled_type_str[] = {"Adafruit SPI 128x32", "Adafruit SPI 128x64",
                                "Adafruit I2C 128x32", "Adafruit I2C 128x64",
                                "Seeed I2C 128x64",    "Seeed I2C 96x96",
-                               "SH1106 I2C 128x64",   "SH1106 SPI 128x64"};
+                               "SH1106 I2C 128x64",   "SH1106 SPI 128x64",
+                               "SSD1306 I2C 128x32"};
 
 // 8x8 Font ASCII 32 - 127 Implemented
 // Users can modify this to support more characters(glyphs)
@@ -279,6 +280,11 @@ boolean ArduiPi_OLED::select_oled(uint8_t OLED_TYPE, int8_t i2c_addr)
     break;
 
   case OLED_ADAFRUIT_I2C_128x32:
+    oled_height = 32;
+    _i2c_addr = ADAFRUIT_I2C_ADDRESS;
+    break;
+
+  case OLED_SSD1306_I2C_128x32:
     oled_height = 32;
     _i2c_addr = ADAFRUIT_I2C_ADDRESS;
     break;
@@ -946,3 +952,7 @@ void ArduiPi_OLED::display(void)
 
 // clear everything (in the buffer)
 void ArduiPi_OLED::clearDisplay(void) { memset(poledbuff, 0, oled_buff_size); }
+
+int16_t ArduiPi_OLED::getOledWidth(void) { return oled_width; }
+
+int16_t ArduiPi_OLED::getOledHeight(void) { return oled_height; }

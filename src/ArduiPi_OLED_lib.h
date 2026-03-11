@@ -52,8 +52,9 @@
 #define OLED_SEEED_I2C_96x96 5
 #define OLED_SH1106_I2C_128x64 6
 #define OLED_SH1106_SPI_128x64 7
+#define OLED_SSD1306_I2C_128x32 8
 
-#define OLED_LAST_OLED 8 /* always last type, used in code to end array */
+#define OLED_LAST_OLED 9 /* always last type, used in code to end array */
 
 extern const char *oled_type_str[];
 

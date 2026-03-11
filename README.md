@@ -8,8 +8,8 @@
 The mpd_oled program displays an information screen including a music
 frequency spectrum on an OLED screen connected to a Raspberry Pi (or similar)
 running MPD, this includes Moode, Volumio and rAudio (RuneAudio fork).
-The program supports I2C and SPI 128x64 OLED displays with an SSD1306,
-SSD1309, SH1106 or SSH1106 controller.
+The program supports I2C and SPI 128x32 and 128x64 OLED displays with an
+SSD1306, SSD1309, SH1106 or SSH1106 controller.
 ![OLED with mpd_oled](mpd_oled.jpg)
 
 ## Install
@@ -24,7 +24,7 @@ commands take a long time to run on a Pi Zero).
 * [Install mpd_oled binary package on Moode 8](doc/install_moode8_deb.md)
 * [Install mpd_oled binary package on Moode 7](doc/install_moode7_deb.md)
 * [Install mpd_oled binary package on Moode 6](doc/install_moode6_deb.md)
-* [Install mpd_oled from source on Moode 8](doc/install_moode8_source.md)
+* [Install mpd_oled from source on Moode 8 - 10](doc/install_moode8_source.md)
 * [Install mpd_oled from source on Moode 7](doc/install_moode7_source.md)
 * [Install mpd_oled from source on Moode 6](doc/install_moode6_source.md)
 
@@ -66,11 +66,14 @@ Options
   -h,--help this help message
   --version version information
   -o <type>  OLED type, specified as a number, from the following:
+      0 Adafruit SPI 128x32
       1 Adafruit SPI 128x64
+      2 Adafruit I2C 128x32
       3 Adafruit I2C 128x64
       4 Seeed I2C 128x64
       6 SH1106 I2C 128x64
       7 SH1106 SPI 128x64
+      8 SSD1306 I2C 128x32
   -b <num>   number of bars to display (default: 16)
   -g <sz>    gap between bars in, pixels (default: 1)
   -f <hz>    framerate in Hz (default: 15)

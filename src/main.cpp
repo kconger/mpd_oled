@@ -50,6 +50,20 @@ const int SPECT_WIDTH = 64;
 
 ArduiPi_OLED display; // global, for use during signal handling
 
+static bool oled_is_supported(int oled)
+{
+  if (oled < 0 || oled >= OLED_LAST_OLED)
+    return false;
+
+  return strstr(oled_type_str[oled], "128x64") ||
+         strstr(oled_type_str[oled], "128x32");
+}
+
+static bool using_32px_height(ArduiPi_OLED &display)
+{
+  return display.getOledHeight() <= 32;
+}
+
 void cleanup(void)
 {
   // Clear and close display
@@ -95,7 +109,7 @@ class OledOpts : public ProgramOpts {
 public:
   const double DEF_SCROLL_RATE = 8;    // pixels per second
   const double DEF_SCROLL_DELAY = 5;   // second delay before scrolling
-  int oled = OLED_ADAFRUIT_SPI_128x32; // OLED type, as a number
+  int oled = -1;                        // OLED type, as a number
   int framerate = 15;                  // frame rate in Hz
   int bars = 16;                       // number of bars in spectrum
   int gap = 1;                         // gap between bars, in pixels
@@ -144,7 +158,7 @@ Options
       stdout,
       "  -o <type>  OLED type, specified as a number, from the following:\n");
   for (int i = 0; i < OLED_LAST_OLED; i++)
-    if (strstr(oled_type_str[i], "128x64"))
+    if (oled_is_supported(i))
       fprintf(stdout, "      %1d %s\n", i, oled_type_str[i]);
 
   fprintf(stdout,
@@ -197,9 +211,8 @@ void OledOpts::process_command_line(int argc, char **argv)
     switch (c) {
     case 'o':
       print_status_or_exit(read_int(optarg, &oled), c);
-      if (oled < 0 || oled >= OLED_LAST_OLED ||
-          !strstr(oled_type_str[oled], "128x64"))
-        error(msg_str("invalid 128x64 oled type %d (see -h)", oled), c);
+      if (!oled_is_supported(oled))
+        error(msg_str("invalid 128x32/128x64 oled type %d (see -h)", oled), c);
       break;
 
     case 'b':
@@ -363,8 +376,8 @@ void OledOpts::process_command_line(int argc, char **argv)
   if (argc - optind > 0)
     error(msg_str("invalid option or parameter: '%s'", argv[optind]));
 
-  if (oled == 0)
-    error("must specify a 128x64 oled", 'o');
+  if (oled == -1)
+    error("must specify a 128x32/128x64 oled", 'o');
 
   const int min_spect_width = bars + (bars - 1) * gap; // assume bar width = 1
   if (min_spect_width > SPECT_WIDTH)
@@ -437,12 +450,20 @@ Status start_cava(FILE **p_fifo_file, const OledOpts &opts)
   return Status::ok();
 }
 
-// Draw fullscreen 128x64 clock/date
+// Draw fullscreen clock/date
 void draw_clock(ArduiPi_OLED &display, const display_info &disp_info)
 {
-  display.clearDisplay();
-  // const int H = 8;  // character height
   const int W = 6; // character width
+
+  if (using_32px_height(display)) {
+    const int clock_offset = (disp_info.clock_format < 2) ? 0 : -2;
+    draw_text(display, 0, 0, 18, disp_info.conn.get_ip_addr());
+    draw_connection(display, 128 - 2 * W, 0, disp_info.conn);
+    draw_time(display, 34 + clock_offset, 8, 2, disp_info.clock_format);
+    draw_date(display, 34, 24, 1, disp_info.date_format);
+    return;
+  }
+
   draw_text(display, 22, 0, 16, disp_info.conn.get_ip_addr());
   draw_connection(display, 128 - 2 * W, 0, disp_info.conn);
   draw_time(display, 4, 16, 4, disp_info.clock_format);
@@ -453,7 +474,30 @@ void draw_spect_display(ArduiPi_OLED &display, const display_info &disp_info)
 {
   const int H = 8; // character height
   const int W = 6; // character width
-  draw_spectrum(display, 0, 0, SPECT_WIDTH, 32, disp_info.spect);
+  const int display_height = display.getOledHeight();
+
+  if (using_32px_height(display)) {
+    draw_spectrum(display, 0, 0, SPECT_WIDTH, 10, disp_info.spect);
+    draw_connection(display, 128 - 2 * W, 0, disp_info.conn);
+    draw_triangle_slider(display, 128 - 5 * W, 1, 11, 6,
+                       disp_info.status.get_volume());
+
+    vector<double> scroll_origin(disp_info.scroll.begin() + 2,
+                               disp_info.scroll.begin() + 4);
+    draw_text_scroll(display, 0, H + 4, 128, disp_info.status.get_origin(),
+                    scroll_origin, disp_info.text_change.secs());
+
+    vector<double> scroll_title(disp_info.scroll.begin(),
+                                disp_info.scroll.begin() + 2);
+    draw_text_scroll(display, 0, 2 * H + 4, 128, disp_info.status.get_title(),
+                    scroll_title, disp_info.text_change.secs());
+    draw_solid_slider(display, 0, 3 * H + 6, 128, 2,
+                    100 * disp_info.status.get_progress());
+    return;
+  }
+
+  draw_spectrum(display, 0, 0, SPECT_WIDTH,
+                display_height < 32 ? display_height : 32, disp_info.spect);
   draw_connection(display, 128 - 2 * W, 0, disp_info.conn);
   draw_triangle_slider(display, 128 - 5 * W, 1, 11, 6,
                        disp_info.status.get_volume());
@@ -463,7 +507,7 @@ void draw_spect_display(ArduiPi_OLED &display, const display_info &disp_info)
   int clock_offset = (disp_info.clock_format < 2) ? 0 : -2;
   draw_time(display, 128 - 10 * W + clock_offset, 2 * H, 2,
             disp_info.clock_format);
-
+    
   vector<double> scroll_origin(disp_info.scroll.begin() + 2,
                                disp_info.scroll.begin() + 4);
   draw_text_scroll(display, 0, 4 * H + 4, 20, disp_info.status.get_origin(),
