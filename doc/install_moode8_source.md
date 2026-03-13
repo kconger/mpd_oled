@@ -1,11 +1,7 @@
-# Install instructions for Moode 8 using source
+# Install instructions for Moode 8 - 10 using source
 
 These instructions are for installing mpd_oled using source on
-Moode 8.
-
-A binary package is also available, but may not include the very
-latest code, see
-[Install instructions for Moode 8](install_moode8_deb.md).
+Moode 8 - 10.
 
 ## Base system
 
@@ -124,11 +120,14 @@ options), and stopped with Ctrl-C, but ensure that no other copy of
 mpd_oled is running).
 
 The OLED type MUST be specified with -o from the following list:
+    0 - Adafruit SPI 128x32
     1 - Adafruit (SSD1306, SSD1309) SPI 128x64,
+    2 - Adafruit I2C 128x32
     3 - Adafruit (SSD1306, SSD1309) I2C 128x64,
     4 - Seeed I2C 128x64,
     6 - SH1106 (SSH1106) I2C 128x64.
     7 - SH1106 (SSH1106) SPI 128x64.
+    8 - SSD1306 I2C 128x32
 
 An example command, for a generic I2C SH1106 display (OLED type 6) with
 a display of 10 bars and a gap of 1 pixel between bars and a framerate

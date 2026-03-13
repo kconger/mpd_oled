@@ -427,7 +427,20 @@ void ArduiPi_OLED::close(void)
 
 void ArduiPi_OLED::reset_offset()
 {
-  sendCommand(SSD1306_Set_Display_Offset, 0x00);        // no offset
+  if (oled_type == OLED_SEEED_I2C_96x96)
+    return;
+
+  sendCommand(SSD1306_Set_Display_Offset, 0x00); // no offset
+  sendCommand(SSD1306_Set_Start_Line | 0x0);     // line #0
+
+  // Reassert addressing window for SSD1306 so transient command glitches
+  // cannot leave the display mapped to the lower half.
+  if (oled_type != OLED_SH1106_I2C_128x64 &&
+      oled_type != OLED_SH1106_SPI_128x64) {
+    const uint8_t page_end = (oled_height / 8) - 1;
+    sendCommand(SSD_Set_Column_Address, 0, oled_width - 1);
+    sendCommand(SSD_Set_Page_Address, 0, page_end);
+  }
 }
 
 void ArduiPi_OLED::begin(void)
@@ -869,9 +882,19 @@ void ArduiPi_OLED::display(void)
     sendCommand(SSD1327_Set_Column_Address, 0x08, 0x37);
   }
   else {
-    sendCommand(SSD1306_Set_Lower_Column_Start_Address | 0x0);  // low col = 0
-    sendCommand(SSD1306_Set_Higher_Column_Start_Address | 0x0); // hi col = 0
-    sendCommand(SSD1306_Set_Start_Line | 0x0);                  // line #0
+    sendCommand(SSD1306_Set_Display_Offset, 0x00); // no offset
+    sendCommand(SSD1306_Set_Start_Line | 0x0);     // line #0
+
+    if (oled_type == OLED_SH1106_I2C_128x64 ||
+        oled_type == OLED_SH1106_SPI_128x64) {
+      sendCommand(SSD1306_Set_Lower_Column_Start_Address | 0x0); // low col = 0
+      sendCommand(SSD1306_Set_Higher_Column_Start_Address | 0x0); // hi col = 0
+    }
+    else {
+      const uint8_t page_end = (oled_height / 8) - 1;
+      sendCommand(SSD_Set_Column_Address, 0, oled_width - 1);
+      sendCommand(SSD_Set_Page_Address, 0, page_end);
+    }
   }
 
   uint16_t i = 0;
